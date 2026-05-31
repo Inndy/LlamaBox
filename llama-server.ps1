@@ -10,11 +10,31 @@ if ($meta.cudart_dir) {
 $exe = "$dir\$($meta.dir)\llama-server.exe"
 
 function Get-FileArgs($path) {
-    if (Test-Path $path) {
-        return @(Get-Content $path |
-            Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' })
+    if (-not (Test-Path $path)) { return @() }
+    $tokens = New-Object System.Collections.Generic.List[string]
+    foreach ($line in Get-Content $path) {
+        if ($line -match '^\s*#' -or $line.Trim() -eq '') { continue }
+        $cur = New-Object System.Text.StringBuilder
+        $started = $false
+        $quote = $null
+        foreach ($c in $line.ToCharArray()) {
+            if ($quote) {
+                if ($c -eq $quote) { $quote = $null } else { [void]$cur.Append($c) }
+            } elseif ($c -eq '"' -or $c -eq "'") {
+                $quote = $c; $started = $true
+            } elseif ($c -eq ' ' -or $c -eq "`t") {
+                if ($started) {
+                    $tokens.Add($cur.ToString())
+                    $cur = New-Object System.Text.StringBuilder
+                    $started = $false
+                }
+            } else {
+                [void]$cur.Append($c); $started = $true
+            }
+        }
+        if ($started) { $tokens.Add($cur.ToString()) }
     }
-    return @()
+    return @($tokens.ToArray())
 }
 
 $passArgs  = @($args)

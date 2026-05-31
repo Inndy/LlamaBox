@@ -183,16 +183,59 @@ function Set-CudartPath($meta) {
 }
 
 function Get-FileArgs($path) {
-    if (Test-Path $path) {
-        return @(Get-Content $path |
-            Where-Object { $_ -notmatch '^\s*#' -and $_.Trim() -ne '' })
+    if (-not (Test-Path $path)) { return @() }
+    $tokens = New-Object System.Collections.Generic.List[string]
+    foreach ($line in Get-Content $path) {
+        if ($line -match '^\s*#' -or $line.Trim() -eq '') { continue }
+        $cur = New-Object System.Text.StringBuilder
+        $started = $false
+        $quote = $null
+        foreach ($c in $line.ToCharArray()) {
+            if ($quote) {
+                if ($c -eq $quote) { $quote = $null } else { [void]$cur.Append($c) }
+            } elseif ($c -eq '"' -or $c -eq "'") {
+                $quote = $c; $started = $true
+            } elseif ($c -eq ' ' -or $c -eq "`t") {
+                if ($started) {
+                    $tokens.Add($cur.ToString())
+                    $cur = New-Object System.Text.StringBuilder
+                    $started = $false
+                }
+            } else {
+                [void]$cur.Append($c); $started = $true
+            }
+        }
+        if ($started) { $tokens.Add($cur.ToString()) }
     }
-    return @()
+    return @($tokens.ToArray())
+}
+
+function Format-ProcessArgs($a) {
+    return @($a | ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } })
 }
 
 function Get-ModelAliases {
     return @(Get-ChildItem "$ModelsDir\*.args.txt" -ErrorAction SilentlyContinue |
         ForEach-Object { $_.BaseName })
+}
+
+function Get-ModelSummary($alias) {
+    $a = Get-FileArgs "$ModelsDir\$alias.args.txt"
+    $model = $null; $hf = $null; $hfRepo = $null; $hfFile = $null; $ctx = $null
+    for ($i = 0; $i -lt $a.Count; $i++) {
+        switch ($a[$i]) {
+            { $_ -in '-m', '--model' }    { $model  = $a[$i + 1] }
+            { $_ -in '-hf', '--hf' }      { $hf     = $a[$i + 1] }
+            '--hf-repo'                   { $hfRepo = $a[$i + 1] }
+            '--hf-file'                   { $hfFile = $a[$i + 1] }
+            { $_ -in '-c', '--ctx-size' } { $ctx    = $a[$i + 1] }
+        }
+    }
+    $source = if ($model)      { Split-Path -Leaf $model }
+              elseif ($hf)     { $hf }
+              elseif ($hfRepo) { "$hfRepo$(if ($hfFile) { " / $hfFile" })" }
+              else             { '(no model defined)' }
+    return [PSCustomObject]@{ Alias = $alias; Model = $source; Ctx = $ctx }
 }
 
 function Resolve-ModelArgs($modelAlias) {
@@ -229,7 +272,7 @@ function Start-AllServers {
         $name     = $_.BaseName
         $fileArgs = Get-FileArgs $_.FullName
         Write-Host "Starting $name..."
-        Start-Process -FilePath $exe -ArgumentList $fileArgs -WindowStyle Hidden
+        Start-Process -FilePath $exe -ArgumentList (Format-ProcessArgs $fileArgs) -WindowStyle Hidden
     }
 }
 
@@ -274,9 +317,14 @@ function Initialize-ArgsFiles {
 # Model profile - copy and rename to an alias, e.g. models\qwen.args.txt
 # Run with:  .\llama-server.ps1 qwen   (or .\llama-cli.ps1 qwen)
 # Appended after llama-server.args.txt / llama-cli.args.txt - profile values win.
-# --model C:\models\qwen2.5-7b-q4_k_m.gguf
+#
+# Multiple args may share a line. Use "double quotes" for paths with spaces and
+# 'single quotes' for values that contain double quotes (e.g. JSON). Backslashes
+# are literal. Lines starting with # and blank lines are ignored.
+# --model "C:\models\qwen2.5-7b-q4_k_m.gguf"
 # --ctx-size 8192
 # --n-gpu-layers 99
+# --chat-template-kwargs '{"reasoning_effort":"medium"}'
 '@ -Encoding UTF8
         Write-Host "Created: models\example.args.txt"
     }
@@ -354,8 +402,12 @@ switch ($PSCmdlet.ParameterSetName) {
     'Cli'          { Invoke-LlamaExe 'llama-cli.exe'    'llama-cli.args.txt'    $Model $ExtraArgs; break }
     'StartServers' { Start-AllServers; break }
     'ListModels'   {
-        $aliases = Get-ModelAliases
-        if ($aliases) { $aliases } else { Write-Host "No model profiles found. Add files to $ModelsDir" }
+        $aliases = @(Get-ModelAliases | Where-Object { $_ -ne 'example' })
+        if ($aliases) {
+            $aliases | ForEach-Object { Get-ModelSummary $_ } | Format-Table -AutoSize
+        } else {
+            Write-Host "No model profiles found. Add files to $ModelsDir"
+        }
         break
     }
     'Update'       { Invoke-Update; break }

@@ -7,10 +7,12 @@ A self-contained PowerShell manager for [llama.cpp](https://github.com/ggml-org/
 ## Quick start
 
 ```powershell
-.\llama-manager.ps1
+.\llama-manager.ps1 -Update
 ```
 
-On first run this will:
+Running `.\llama-manager.ps1` with no arguments prints the available sub-commands.
+
+On first run `-Update` will:
 - Download the latest llama.cpp release (CUDA 13 by default) straight into memory (fileless, no temp zip)
 - Extract it in-memory with .NET `ZipArchive`
 - Download the CUDA runtime DLLs into a separate directory
@@ -37,10 +39,10 @@ The chosen variant is saved to `meta.json` and reused on subsequent runs.
 
 ## Updating
 
-Re-run the manager at any time. It checks the latest GitHub release and downloads only if a newer version is available or the variant changed.
+Re-run `-Update` at any time. It checks the latest GitHub release and downloads only if a newer version is available or the variant changed.
 
 ```powershell
-.\llama-manager.ps1
+.\llama-manager.ps1 -Update
 ```
 
 Old extracted directories are kept on disk. Only `meta.json` is updated to point at the new version.
@@ -63,6 +65,22 @@ Edit the args files to set your model path and options, then run the shims:
 
 The shims automatically resolve the correct binary path and prepend the CUDA runtime directory to `PATH` (for CUDA variants) at runtime — no changes needed after an update.
 
+## Args file format
+
+Every `*.args.txt` file (base, server, and model profiles) is parsed the same way:
+
+- Arguments are split on whitespace, so you can put one per line **or** several on a line.
+- Lines that are blank or start with `#` are ignored (comments are line-level only).
+- Use `"double quotes"` for values containing spaces, e.g. a Windows path:
+  `--model "C:\Program Files\models\m.gguf"`.
+- Use `'single quotes'` for values that themselves contain double quotes, e.g. JSON:
+  `--chat-template-kwargs '{"reasoning_effort":"medium"}'`.
+- Backslashes are literal, so unquoted Windows paths like `C:\models\m.gguf` work as-is.
+
+> Note: when launching via `start-servers.ps1` (which uses `Start-Process`), a value that
+> contains *both* a space and a double quote is a Windows PowerShell 5.1 edge case and may not
+> be passed intact; the shims (`llama-server.ps1` / `llama-cli.ps1`) are unaffected.
+
 ## Model profiles
 
 Keep your preferred args per model in `models/<alias>.args.txt`, then launch by alias:
@@ -83,7 +101,8 @@ Keep your preferred args per model in `models/<alias>.args.txt`, then launch by 
 
 The first argument is treated as a profile alias only when it does **not** start with `-` (every llama flag does), so it never collides with normal args. Effective arguments are layered as **base args file → profile → extra CLI args**, and llama.cpp lets later values win — so put shared defaults (e.g. `--port`) in `llama-server.args.txt` and per-model settings in the profile. Running with no alias keeps the old behavior (base args file only).
 
-List available profiles:
+List defined profiles (a table of alias, model source, and context size; the `example`
+template is omitted):
 
 ```powershell
 .\llama-manager.ps1 -ListModels

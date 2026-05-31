@@ -39,7 +39,7 @@ Shims self-update via `meta.json` — they don't need to be regenerated when the
 3. If the first arg is not a flag (no leading `-`), treat it as a model profile alias and load `models\<alias>.args.txt` (error if unknown)
 4. Build the final command as: base `.args.txt` → profile args → remaining CLI args (comments and blank lines stripped from files)
 
-The args-file parsing, model-alias resolution, and `cudart_dir` PATH logic are duplicated between the shims and `llama-manager.ps1` (`Get-FileArgs`, `Resolve-ModelArgs`, `Set-CudartPath`) because the shims are standalone entry points — keep them in sync when changing either.
+The args-file parsing, model-alias resolution, and `cudart_dir` PATH logic are duplicated between the shims and `llama-manager.ps1` (`Get-FileArgs`, `Resolve-ModelArgs`, `Set-CudartPath`) because the shims are standalone entry points — keep them in sync when changing either. `Get-FileArgs` also appears in `start-servers.ps1`, and `Format-ProcessArgs` is shared between `start-servers.ps1` and `llama-manager.ps1`.
 
 ## Model profiles
 
@@ -47,4 +47,16 @@ The args-file parsing, model-alias resolution, and `cudart_dir` PATH logic are d
 
 ## Args file format
 
-One argument per line. Lines starting with `#` and blank lines are ignored. No quoting needed for simple values; use normal PS quoting rules for paths with spaces if passing via CLI.
+`Get-FileArgs` is a shell-like tokenizer (per line): tokens split on whitespace, so args may
+be one-per-line or several on a line. Lines starting with `#` and blank lines are ignored
+(comments are line-level only). `"double quotes"` group values with spaces; `'single quotes'`
+group values containing literal double quotes (JSON). Backslashes are always literal, so
+unquoted Windows paths survive. Quotes may appear mid-token (shell-style concatenation).
+
+`-ListModels` prints a table (alias, model source, ctx-size) built by `Get-ModelSummary`, which
+reads the `-m`/`--model`, `-hf`/`--hf`, `--hf-repo`/`--hf-file`, and `-c`/`--ctx-size` flags from
+each profile; the `example` template is excluded from the listing.
+
+`Format-ProcessArgs` re-quotes space-containing tokens before `Start-Process -ArgumentList`
+(used by `Start-AllServers` and `start-servers.ps1`), since PS 5.1 won't re-quote them itself.
+The `& $exe @args` splatting path (shims, `Invoke-LlamaExe`) needs no such handling.
