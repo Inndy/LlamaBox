@@ -1,0 +1,14 @@
+﻿--host
+0.0.0.0
+--port
+1234
+-ngl
+all
+-fa
+on
+-b
+4096
+-ub
+4096
+--mlock
+--mmap

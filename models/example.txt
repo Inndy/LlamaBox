@@ -1,0 +1,6 @@
+# Model profile - copy and rename to an alias, e.g. models\qwen.args.txt
+# Run with:  .\llama-server.ps1 qwen   (or .\llama-cli.ps1 qwen)
+# Appended after llama-server.args.txt / llama-cli.args.txt - profile values win.
+# --model C:\models\qwen2.5-7b-q4_k_m.gguf
+# --ctx-size 8192
+# --n-gpu-layers 99

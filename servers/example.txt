@@ -1,0 +1,4 @@
+﻿# Example server instance - copy and rename this file for each server
+# --model C:\models\mistral-7b-q4.gguf
+# --port 8080
+# --ctx-size 4096

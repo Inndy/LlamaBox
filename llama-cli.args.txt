@@ -1,0 +1,3 @@
+﻿# llama-cli arguments - one per line # lines are ignored
+# --model C:\models\model.gguf
+# --ctx-size 4096

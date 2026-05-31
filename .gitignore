@@ -1,0 +1,8 @@
+# CUDA runtime DLLs (cuda variants only)
+/cudart-llama-*
+
+# Downloaded/extracted llama.cpp release dirs - all variants
+# (cuda12, cuda13, hip/rocm, vulkan, cpu) and any leftover .zip
+/llama-b*-bin-*
+
+/meta.json
