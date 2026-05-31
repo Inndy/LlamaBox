@@ -24,7 +24,7 @@
     Skip adding the install directory to your user PATH.
 
 .PARAMETER Update
-    After installing, immediately run `llama.ps1 -Update` to download the llama.cpp binaries.
+    After installing, immediately run `llama update` to download the llama.cpp binaries.
 #>
 param(
     [string]$Dir    = "$env:LOCALAPPDATA\LlamaBox",
@@ -94,17 +94,17 @@ if (-not $NoPath) {
 }
 
 if ($Update) {
-    Write-Host "Running llama.ps1 -Update ..." -ForegroundColor Cyan
-    & "$Dir\llama.ps1" -Update
+    Write-Host "Running llama update ..." -ForegroundColor Cyan
+    & "$Dir\llama.ps1" update
 }
 
 Write-Host ""
 Write-Host "Done. Next steps:" -ForegroundColor Cyan
 if ($NoPath) {
     Write-Host "  cd `"$Dir`""
-    Write-Host "  .\llama.ps1 -Update          # download the llama.cpp binaries"
+    Write-Host "  .\llama.ps1 update           # download the llama.cpp binaries"
 } else {
     Write-Host "  Open a NEW terminal, then:"
-    Write-Host "  llama -Update                # download the llama.cpp binaries"
-    Write-Host "  llama -Server -Model <alias> # run a server"
+    Write-Host "  llama update                 # download the llama.cpp binaries"
+    Write-Host "  llama serve <alias>          # run a server"
 }

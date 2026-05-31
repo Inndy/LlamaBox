@@ -25,9 +25,9 @@ Prefer to do it by hand? Just download or `git clone` the repo into a folder —
 Once the install directory is on `PATH` (open a **new** terminal afterwards), the `llama` command works from anywhere thanks to the bundled `llama.cmd` launcher:
 
 ```powershell
-llama -Update                 # download/update the llama.cpp binaries
-llama -Server -Model qwen     # run a server with the qwen profile
-llama -ListModels             # list your model profiles
+llama update                  # download/update the llama.cpp binaries
+llama serve qwen              # run a server with the qwen profile
+llama models                  # list your model profiles
 ```
 
 > The examples below use `.\llama.ps1`, which works from inside the install folder. If you put the
@@ -37,12 +37,12 @@ llama -ListModels             # list your model profiles
 ## Quick start
 
 ```powershell
-.\llama.ps1 -Update
+.\llama.ps1 update
 ```
 
 Running `.\llama.ps1` with no arguments prints the available sub-commands.
 
-On first run, `-Update` will:
+On first run, `update` will:
 - Download the latest llama.cpp release (CUDA 13 by default) straight into memory (fileless, no temp zip)
 - Extract it in-memory with .NET `ZipArchive`
 - Download the CUDA runtime DLLs into a separate directory (CUDA variants only)
@@ -53,25 +53,25 @@ The shims (`llama-server.ps1`, `llama-cli.ps1`) and `start-servers.ps1` ship wit
 ## Variants
 
 ```powershell
-.\llama.ps1 -Update -Variant cuda13   # NVIDIA CUDA 13.x (default)
-.\llama.ps1 -Update -Variant cuda12   # NVIDIA CUDA 12.x
-.\llama.ps1 -Update -Variant hip      # AMD ROCm/HIP (Radeon)
-.\llama.ps1 -Update -Variant vulkan   # Vulkan (cross-vendor)
-.\llama.ps1 -Update -Variant cpu      # CPU-only (no GPU runtime)
+.\llama.ps1 update cuda13   # NVIDIA CUDA 13.x (default)
+.\llama.ps1 update cuda12   # NVIDIA CUDA 12.x
+.\llama.ps1 update hip      # AMD ROCm/HIP (Radeon)
+.\llama.ps1 update vulkan   # Vulkan (cross-vendor)
+.\llama.ps1 update cpu      # CPU-only (no GPU runtime)
 
 # Aliases
-.\llama.ps1 -Update -Variant cuda     # same as cuda13
-.\llama.ps1 -Update -Variant rocm     # same as hip
+.\llama.ps1 update cuda     # same as cuda13
+.\llama.ps1 update rocm     # same as hip
 ```
 
 The chosen variant is saved to `meta.json` and reused on subsequent runs.
 
 ## Updating
 
-Re-run `-Update` at any time. It checks the latest GitHub release and downloads only if a newer version is available or the variant changed.
+Re-run `update` at any time. It checks the latest GitHub release and downloads only if a newer version is available or the variant changed.
 
 ```powershell
-.\llama.ps1 -Update
+.\llama.ps1 update
 ```
 
 Old extracted directories are kept on disk. Only `meta.json` is updated to point at the new version.
@@ -134,14 +134,14 @@ List defined profiles (a table of alias, model source, and context size; the `ex
 template is omitted):
 
 ```powershell
-.\llama.ps1 -ListModels
+.\llama.ps1 models
 ```
 
-The manager accepts a profile too, via `-Model`:
+The manager takes a profile alias positionally, just like the shims:
 
 ```powershell
-.\llama.ps1 -Server -Model qwen
-.\llama.ps1 -Cli -Model qwen -p "hello"
+.\llama.ps1 serve qwen
+.\llama.ps1 cli qwen -p "hello"
 ```
 
 ## Running multiple servers
@@ -181,7 +181,7 @@ LlamaBox\
   llama.ps1                            ← main manager (the `llama` command)
   llama.cmd                            ← launcher so `llama` works on PATH
   install.ps1                          ← installer / script updater
-  meta.json                            ← installed-release state (created by -Update)
+  meta.json                            ← installed-release state (created by update)
   llama-server.ps1                     ← shim
   llama-cli.ps1                        ← shim
   start-servers.ps1                    ← starts every servers\*.txt instance (except example)
@@ -191,7 +191,7 @@ LlamaBox\
     example.txt
   models\
     example.txt                        ← per-model arg profiles (run by alias)
-  llama-b8676-bin-win-cuda-13.1-x64\   ← binaries (downloaded by -Update)
+  llama-b8676-bin-win-cuda-13.1-x64\   ← binaries (downloaded by update)
   cudart-llama-bin-win-cuda-13.1-x64\  ← CUDA runtime DLLs (cuda variants only)
 ```
 

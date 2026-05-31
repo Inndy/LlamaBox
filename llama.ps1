@@ -1,34 +1,11 @@
-[CmdletBinding(DefaultParameterSetName = 'Help')]
+[CmdletBinding()]
 param(
-    [Parameter(ParameterSetName = 'Update')]
-    [switch]$Update,
+    [Parameter(Position = 0)]
+    [ValidateSet('serve', 'cli', 'update', 'start', 'models', 'help')]
+    [string]$Command = 'help',
 
-    [Parameter(ParameterSetName = 'Update')]
-    [ValidateSet('cuda12', 'cuda13', 'cuda', 'hip', 'rocm', 'vulkan', 'cpu')]
-    [string]$Variant,
-
-    [Parameter(ParameterSetName = 'Server')]
-    [switch]$Server,
-
-    [Parameter(ParameterSetName = 'Cli')]
-    [switch]$Cli,
-
-    [Parameter(ParameterSetName = 'StartServers')]
-    [switch]$StartServers,
-
-    [Parameter(ParameterSetName = 'ListModels')]
-    [switch]$ListModels,
-
-    [Parameter(ParameterSetName = 'Help')]
-    [switch]$Help,
-
-    [Parameter(ParameterSetName = 'Server')]
-    [Parameter(ParameterSetName = 'Cli')]
-    [string]$Model,
-
-    [Parameter(ParameterSetName = 'Server', ValueFromRemainingArguments = $true)]
-    [Parameter(ParameterSetName = 'Cli',    ValueFromRemainingArguments = $true)]
-    [string[]]$ExtraArgs
+    [Parameter(Position = 1, ValueFromRemainingArguments = $true)]
+    [string[]]$Rest
 )
 
 $ErrorActionPreference = 'Stop'
@@ -247,9 +224,23 @@ function Resolve-ModelArgs($modelAlias) {
     return Get-FileArgs $profileFile
 }
 
+function Split-ModelArgs($rest) {
+    $model = $null
+    $extra = @()
+    if ($rest) {
+        if ($rest[0] -notmatch '^-') {
+            $model = $rest[0]
+            if ($rest.Count -gt 1) { $extra = @($rest[1..($rest.Count - 1)]) }
+        } else {
+            $extra = @($rest)
+        }
+    }
+    return [PSCustomObject]@{ Model = $model; Extra = $extra }
+}
+
 function Invoke-LlamaExe($exeName, $argsFileName, $modelAlias, $extraArgs) {
     $meta = Read-JsonFile $MetaFile
-    if ($null -eq $meta) { throw "llama.cpp is not installed. Run .\llama.ps1 -Update to install." }
+    if ($null -eq $meta) { throw "llama.cpp is not installed. Run 'llama update' to install." }
 
     Set-CudartPath $meta
 
@@ -263,7 +254,7 @@ function Invoke-LlamaExe($exeName, $argsFileName, $modelAlias, $extraArgs) {
 
 function Start-AllServers {
     $meta = Read-JsonFile $MetaFile
-    if ($null -eq $meta) { throw "llama.cpp is not installed. Run .\llama.ps1 -Update to install." }
+    if ($null -eq $meta) { throw "llama.cpp is not installed. Run 'llama update' to install." }
 
     Set-CudartPath $meta
 
@@ -332,8 +323,16 @@ function Initialize-ArgsFiles {
     }
 }
 
-function Invoke-Update {
+function Invoke-Update($rest) {
     $meta = Read-JsonFile $MetaFile
+
+    $Variant = if ($rest) { $rest[0] } else { $null }
+    if ($Variant) {
+        $known = @($VariantPatterns.Keys) + @($VariantAliases.Keys)
+        if ($known -notcontains $Variant) {
+            throw "Unknown variant '$Variant'. Available: $($known -join ', ')"
+        }
+    }
 
     $variantKey = 'cuda13'
     if ($Variant) {
@@ -379,15 +378,15 @@ function Invoke-Update {
 
 function Show-Help {
     Write-Host @'
-LlamaBox (llama.ps1) - manage llama.cpp Windows releases
+LlamaBox (llama) - manage llama.cpp Windows releases
 
 USAGE:
-  .\llama.ps1 -Update [-Variant <variant>]      Download/install or update llama.cpp to the latest release
-  .\llama.ps1 -Server [-Model <alias>] [args]   Run llama-server
-  .\llama.ps1 -Cli [-Model <alias>] [args]      Run llama-cli
-  .\llama.ps1 -StartServers                     Start every servers\*.txt instance
-  .\llama.ps1 -ListModels                       List available model profiles
-  .\llama.ps1 -Help                             Show this help
+  llama update [variant]        Download/install or update llama.cpp to the latest release
+  llama serve [model] [args]    Run llama-server (optional model profile, then extra args)
+  llama cli   [model] [args]    Run llama-cli   (optional model profile, then extra args)
+  llama start                   Start every servers\*.txt instance
+  llama models                  List available model profiles
+  llama help                    Show this help
 
 VARIANTS:
   cuda12, cuda13, cuda (-> cuda13), hip, rocm (-> hip), vulkan, cpu
@@ -399,11 +398,19 @@ VARIANTS:
 # Main
 #
 
-switch ($PSCmdlet.ParameterSetName) {
-    'Server'       { Invoke-LlamaExe 'llama-server.exe' 'llama-server.args.txt' $Model $ExtraArgs; break }
-    'Cli'          { Invoke-LlamaExe 'llama-cli.exe'    'llama-cli.args.txt'    $Model $ExtraArgs; break }
-    'StartServers' { Start-AllServers; break }
-    'ListModels'   {
+switch ($Command) {
+    'serve'  {
+        $sel = Split-ModelArgs $Rest
+        Invoke-LlamaExe 'llama-server.exe' 'llama-server.args.txt' $sel.Model $sel.Extra
+        break
+    }
+    'cli'    {
+        $sel = Split-ModelArgs $Rest
+        Invoke-LlamaExe 'llama-cli.exe' 'llama-cli.args.txt' $sel.Model $sel.Extra
+        break
+    }
+    'start'  { Start-AllServers; break }
+    'models' {
         $aliases = @(Get-ModelAliases | Where-Object { $_ -ne 'example' })
         if ($aliases) {
             $aliases | ForEach-Object { Get-ModelSummary $_ } | Format-Table -AutoSize
@@ -412,6 +419,6 @@ switch ($PSCmdlet.ParameterSetName) {
         }
         break
     }
-    'Update'       { Invoke-Update; break }
-    default        { Show-Help; break }
+    'update' { Invoke-Update $Rest; break }
+    default  { Show-Help; break }
 }

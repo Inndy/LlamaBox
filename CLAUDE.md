@@ -16,7 +16,7 @@ PowerShell-based manager for llama.cpp Windows releases. No Python or third-part
 | `llama-server.args.txt` | Default args for single-server interactive use |
 | `llama-cli.args.txt` | Default args for llama-cli interactive use |
 | `servers/*.txt` | One file per named server instance (started by start-servers.ps1; `example` is skipped) |
-| `models/*.txt` | One file per model profile, keyed by filename alias (run via shim or `-Model`) |
+| `models/*.txt` | One file per model profile, keyed by filename alias (run via shim or `llama serve <alias>`) |
 
 ## Constraints
 
@@ -45,7 +45,7 @@ The args-file parsing, model-alias resolution, and `cudart_dir` PATH logic are d
 
 ## Model profiles
 
-`models/<alias>.txt` holds preferred args per model (subfolder profiles drop the `.args` infix that the root base files keep, so the alias is just the filename stem). Layering is **base args file → profile → extra CLI args**; llama.cpp uses the last value for a repeated flag, so the profile and CLI override base defaults. Invoke via the shim positionally (`.\llama-server.ps1 qwen`), the manager (`.\llama.ps1 -Server -Model qwen` / `-Cli -Model qwen`), or list with `-ListModels`. Same file format as any args file.
+`models/<alias>.txt` holds preferred args per model (subfolder profiles drop the `.args` infix that the root base files keep, so the alias is just the filename stem). Layering is **base args file → profile → extra CLI args**; llama.cpp uses the last value for a repeated flag, so the profile and CLI override base defaults. Invoke via the shim positionally (`.\llama-server.ps1 qwen`), the manager (`.\llama.ps1 serve qwen` / `cli qwen`), or list with `.\llama.ps1 models`. Same file format as any args file.
 
 ## Args file format
 
@@ -55,7 +55,7 @@ be one-per-line or several on a line. Lines starting with `#` and blank lines ar
 group values containing literal double quotes (JSON). Backslashes are always literal, so
 unquoted Windows paths survive. Quotes may appear mid-token (shell-style concatenation).
 
-`-ListModels` prints a table (alias, model source, ctx-size) built by `Get-ModelSummary`, which
+The `models` sub-command prints a table (alias, model source, ctx-size) built by `Get-ModelSummary`, which
 reads the `-m`/`--model`, `-hf`/`--hf`, `--hf-repo`/`--hf-file`, and `-c`/`--ctx-size` flags from
 each profile; the `example` template is excluded from the listing.
 
