@@ -1,6 +1,11 @@
-# Model profile - copy and rename to an alias, e.g. models\qwen.args.txt
+# Model profile - copy and rename to an alias, e.g. models\qwen.txt
 # Run with:  .\llama-server.ps1 qwen   (or .\llama-cli.ps1 qwen)
 # Appended after llama-server.args.txt / llama-cli.args.txt - profile values win.
-# --model C:\models\qwen2.5-7b-q4_k_m.gguf
+#
+# Multiple args may share a line. Use "double quotes" for paths with spaces and
+# 'single quotes' for values that contain double quotes (e.g. JSON). Backslashes
+# are literal. Lines starting with # and blank lines are ignored.
+# --model "C:\models\qwen2.5-7b-q4_k_m.gguf"
 # --ctx-size 8192
 # --n-gpu-layers 99
+# --chat-template-kwargs '{"reasoning_effort":"medium"}'

@@ -12,11 +12,11 @@ PowerShell-based manager for llama.cpp Windows releases. No Python or third-part
 | `meta.json` | Installed release state (release tag, dir, cudart_dir, variant). Gitignored. |
 | `llama-server.ps1` | Shim — reads meta.json at runtime (committed, not generated) |
 | `llama-cli.ps1` | Shim — reads meta.json at runtime (committed, not generated) |
-| `start-servers.ps1` | Startup script (committed) — discovers servers/*.args.txt |
+| `start-servers.ps1` | Startup script (committed) — discovers servers/*.txt |
 | `llama-server.args.txt` | Default args for single-server interactive use |
 | `llama-cli.args.txt` | Default args for llama-cli interactive use |
-| `servers/*.args.txt` | One file per named server instance (started by start-servers.ps1) |
-| `models/*.args.txt` | One file per model profile, keyed by filename alias (run via shim or `-Model`) |
+| `servers/*.txt` | One file per named server instance (started by start-servers.ps1; `example` is skipped) |
+| `models/*.txt` | One file per model profile, keyed by filename alias (run via shim or `-Model`) |
 
 ## Constraints
 
@@ -38,14 +38,14 @@ Asset selection: prefix must be `llama-` (main) or `cudart-llama-` (cudart), mat
 Shims self-update via `meta.json` — they don't need to be regenerated when the version changes. They:
 1. Read `meta.json` to find the current binary dir
 2. Prepend `cudart_dir` to `$env:PATH` if present
-3. If the first arg is not a flag (no leading `-`), treat it as a model profile alias and load `models\<alias>.args.txt` (error if unknown)
+3. If the first arg is not a flag (no leading `-`), treat it as a model profile alias and load `models\<alias>.txt` (error if unknown)
 4. Build the final command as: base `.args.txt` → profile args → remaining CLI args (comments and blank lines stripped from files)
 
 The args-file parsing, model-alias resolution, and `cudart_dir` PATH logic are duplicated between the shims and `llama.ps1` (`Get-FileArgs`, `Resolve-ModelArgs`, `Set-CudartPath`) because the shims are standalone entry points — keep them in sync when changing either. `Get-FileArgs` also appears in `start-servers.ps1`, and `Format-ProcessArgs` is shared between `start-servers.ps1` and `llama.ps1`.
 
 ## Model profiles
 
-`models/<alias>.args.txt` holds preferred args per model. Layering is **base args file → profile → extra CLI args**; llama.cpp uses the last value for a repeated flag, so the profile and CLI override base defaults. Invoke via the shim positionally (`.\llama-server.ps1 qwen`), the manager (`.\llama.ps1 -Server -Model qwen` / `-Cli -Model qwen`), or list with `-ListModels`. Same file format as any args file.
+`models/<alias>.txt` holds preferred args per model (subfolder profiles drop the `.args` infix that the root base files keep, so the alias is just the filename stem). Layering is **base args file → profile → extra CLI args**; llama.cpp uses the last value for a repeated flag, so the profile and CLI override base defaults. Invoke via the shim positionally (`.\llama-server.ps1 qwen`), the manager (`.\llama.ps1 -Server -Model qwen` / `-Cli -Model qwen`), or list with `-ListModels`. Same file format as any args file.
 
 ## Args file format
 

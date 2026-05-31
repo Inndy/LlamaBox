@@ -18,7 +18,7 @@ To choose the directory or skip the `PATH` change, pass arguments via a script b
 & ([scriptblock]::Create((irm https://raw.githubusercontent.com/Inndy/LlamaBox/main/install.ps1))) -Dir D:\LlamaBox -NoPath
 ```
 
-Re-running the installer upgrades the scripts in place and leaves your `*.args.txt` configs and `meta.json` untouched.
+Re-running the installer upgrades the scripts in place and leaves your argument files (`llama-*.args.txt`, `models/`, `servers/`) and `meta.json` untouched.
 
 Prefer to do it by hand? Just download or `git clone` the repo into a folder — every script self-locates, so the folder can live anywhere.
 
@@ -96,7 +96,7 @@ The shims automatically resolve the correct binary path and prepend the CUDA run
 
 ## Args file format
 
-Every `*.args.txt` file (base, server, and model profiles) is parsed the same way:
+Every arguments file — the base `llama-server.args.txt` / `llama-cli.args.txt` and the per-server / per-model `.txt` profiles — is parsed the same way:
 
 - Arguments are split on whitespace, so you can put one per line **or** several on a line.
 - Lines that are blank or start with `#` are ignored (comments are line-level only).
@@ -112,15 +112,15 @@ Every `*.args.txt` file (base, server, and model profiles) is parsed the same wa
 
 ## Model profiles
 
-Keep your preferred args per model in `models/<alias>.args.txt`, then launch by alias:
+Keep your preferred args per model in `models/<alias>.txt`, then launch by alias:
 
 ```powershell
-.\llama-server.ps1 qwen                # base args + models\qwen.args.txt
+.\llama-server.ps1 qwen                # base args + models\qwen.txt
 .\llama-cli.ps1    qwen -p "hello"     # works for the CLI too
 .\llama-server.ps1 qwen --port 9000    # CLI args still override
 ```
 
-**`models\qwen.args.txt`**
+**`models\qwen.txt`**
 ```
 # Qwen2.5 7B - my preferred setup
 --model C:\models\qwen2.5-7b-q4_k_m.gguf
@@ -146,16 +146,17 @@ The manager accepts a profile too, via `-Model`:
 
 ## Running multiple servers
 
-Create one `.args.txt` file per server instance in the `servers/` directory:
+Create one `.txt` file per server instance in the `servers/` directory:
 
 ```
 servers\
-  mistral.args.txt
-  llava.args.txt
-  codellama.args.txt
+  mistral.txt
+  llava.txt
+  codellama.txt
 ```
 
-Each file follows the same format as `llama-server.args.txt`. Then run:
+Each file follows the same format as `llama-server.args.txt`. A file named `example.txt` is
+skipped, so the shipped template never auto-starts. Then run:
 
 ```powershell
 .\start-servers.ps1
@@ -183,13 +184,13 @@ LlamaBox\
   meta.json                            ← installed-release state (created by -Update)
   llama-server.ps1                     ← shim
   llama-cli.ps1                        ← shim
-  start-servers.ps1                    ← starts every servers\*.args.txt instance
+  start-servers.ps1                    ← starts every servers\*.txt instance (except example)
   llama-server.args.txt
   llama-cli.args.txt
   servers\
-    example.args.txt
+    example.txt
   models\
-    example.args.txt                   ← per-model arg profiles (run by alias)
+    example.txt                        ← per-model arg profiles (run by alias)
   llama-b8676-bin-win-cuda-13.1-x64\   ← binaries (downloaded by -Update)
   cudart-llama-bin-win-cuda-13.1-x64\  ← CUDA runtime DLLs (cuda variants only)
 ```

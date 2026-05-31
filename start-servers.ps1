@@ -41,8 +41,9 @@ function Format-ProcessArgs($a) {
     return @($a | ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } })
 }
 
-Get-ChildItem "$dir\servers\*.args.txt" -ErrorAction SilentlyContinue | ForEach-Object {
+Get-ChildItem "$dir\servers\*.txt" -ErrorAction SilentlyContinue | ForEach-Object {
     $name = $_.BaseName
+    if ($name -eq 'example') { return }
     $fileArgs = Get-FileArgs $_.FullName
     Write-Host "Starting $name..."
     Start-Process -FilePath $exe -ArgumentList (Format-ProcessArgs $fileArgs) -WindowStyle Hidden

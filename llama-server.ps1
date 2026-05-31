@@ -42,9 +42,9 @@ $modelArgs = @()
 # A leading token that is not a flag (no '-') is treated as a model profile alias.
 if ($passArgs.Count -gt 0 -and $passArgs[0] -notmatch '^-') {
     $alias = $passArgs[0]
-    $profileFile = "$dir\models\$alias.args.txt"
+    $profileFile = "$dir\models\$alias.txt"
     if (-not (Test-Path $profileFile)) {
-        $available = @(Get-ChildItem "$dir\models\*.args.txt" -ErrorAction SilentlyContinue |
+        $available = @(Get-ChildItem "$dir\models\*.txt" -ErrorAction SilentlyContinue |
             ForEach-Object { $_.BaseName })
         throw "Unknown model profile '$alias'. Available: $($available -join ', ')"
     }

@@ -215,12 +215,12 @@ function Format-ProcessArgs($a) {
 }
 
 function Get-ModelAliases {
-    return @(Get-ChildItem "$ModelsDir\*.args.txt" -ErrorAction SilentlyContinue |
+    return @(Get-ChildItem "$ModelsDir\*.txt" -ErrorAction SilentlyContinue |
         ForEach-Object { $_.BaseName })
 }
 
 function Get-ModelSummary($alias) {
-    $a = Get-FileArgs "$ModelsDir\$alias.args.txt"
+    $a = Get-FileArgs "$ModelsDir\$alias.txt"
     $model = $null; $hf = $null; $hfRepo = $null; $hfFile = $null; $ctx = $null
     for ($i = 0; $i -lt $a.Count; $i++) {
         switch ($a[$i]) {
@@ -240,7 +240,7 @@ function Get-ModelSummary($alias) {
 
 function Resolve-ModelArgs($modelAlias) {
     if (-not $modelAlias) { return @() }
-    $profileFile = "$ModelsDir\$modelAlias.args.txt"
+    $profileFile = "$ModelsDir\$modelAlias.txt"
     if (-not (Test-Path $profileFile)) {
         throw "Unknown model profile '$modelAlias'. Available: $((Get-ModelAliases) -join ', ')"
     }
@@ -268,8 +268,9 @@ function Start-AllServers {
     Set-CudartPath $meta
 
     $exe = "$BaseDir\$($meta.dir)\llama-server.exe"
-    Get-ChildItem "$ServersDir\*.args.txt" -ErrorAction SilentlyContinue | ForEach-Object {
+    Get-ChildItem "$ServersDir\*.txt" -ErrorAction SilentlyContinue | ForEach-Object {
         $name     = $_.BaseName
+        if ($name -eq 'example') { return }
         $fileArgs = Get-FileArgs $_.FullName
         Write-Host "Starting $name..."
         Start-Process -FilePath $exe -ArgumentList (Format-ProcessArgs $fileArgs) -WindowStyle Hidden
@@ -296,25 +297,26 @@ function Initialize-ArgsFiles {
 
     $null = New-Item -ItemType Directory -Path $ServersDir -Force
 
-    $existingCount = (Get-ChildItem "$ServersDir\*.args.txt" -ErrorAction SilentlyContinue |
+    $existingCount = (Get-ChildItem "$ServersDir\*.txt" -ErrorAction SilentlyContinue |
         Measure-Object).Count
     if ($existingCount -eq 0) {
-        Set-Content "$ServersDir\example.args.txt" @'
-# Example server instance - copy and rename this file for each server
+        Set-Content "$ServersDir\example.txt" @'
+# Example server instance - copy and rename this file for each server.
+# The 'example' name is skipped by start-servers.ps1, so it never auto-starts.
 # --model C:\models\mistral-7b-q4.gguf
 # --port 8080
 # --ctx-size 4096
 '@ -Encoding UTF8
-        Write-Host "Created: servers\example.args.txt"
+        Write-Host "Created: servers\example.txt"
     }
 
     $null = New-Item -ItemType Directory -Path $ModelsDir -Force
 
-    $existingModels = (Get-ChildItem "$ModelsDir\*.args.txt" -ErrorAction SilentlyContinue |
+    $existingModels = (Get-ChildItem "$ModelsDir\*.txt" -ErrorAction SilentlyContinue |
         Measure-Object).Count
     if ($existingModels -eq 0) {
-        Set-Content "$ModelsDir\example.args.txt" @'
-# Model profile - copy and rename to an alias, e.g. models\qwen.args.txt
+        Set-Content "$ModelsDir\example.txt" @'
+# Model profile - copy and rename to an alias, e.g. models\qwen.txt
 # Run with:  .\llama-server.ps1 qwen   (or .\llama-cli.ps1 qwen)
 # Appended after llama-server.args.txt / llama-cli.args.txt - profile values win.
 #
@@ -326,7 +328,7 @@ function Initialize-ArgsFiles {
 # --n-gpu-layers 99
 # --chat-template-kwargs '{"reasoning_effort":"medium"}'
 '@ -Encoding UTF8
-        Write-Host "Created: models\example.args.txt"
+        Write-Host "Created: models\example.txt"
     }
 }
 
@@ -383,7 +385,7 @@ USAGE:
   .\llama.ps1 -Update [-Variant <variant>]      Download/install or update llama.cpp to the latest release
   .\llama.ps1 -Server [-Model <alias>] [args]   Run llama-server
   .\llama.ps1 -Cli [-Model <alias>] [args]      Run llama-cli
-  .\llama.ps1 -StartServers                     Start every servers\*.args.txt instance
+  .\llama.ps1 -StartServers                     Start every servers\*.txt instance
   .\llama.ps1 -ListModels                       List available model profiles
   .\llama.ps1 -Help                             Show this help
 
