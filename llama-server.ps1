@@ -1,7 +1,7 @@
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $metaFile = "$dir\meta.json"
 if (-not (Test-Path $metaFile)) {
-    throw "llama.cpp is not installed. Run llama-manager.ps1 to install."
+    throw "llama.cpp is not installed. Run .\llama.ps1 -Update to install."
 }
 $meta = Get-Content $metaFile -Raw | ConvertFrom-Json
 if ($meta.cudart_dir) {

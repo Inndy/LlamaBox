@@ -109,7 +109,7 @@ function Get-LatestRelease($variantKey) {
 function Get-AssetStream($url, $size, $label) {
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     $wc = New-Object System.Net.WebClient
-    $wc.Headers.Add('User-Agent', 'llama-dl')
+    $wc.Headers.Add('User-Agent', 'LlamaBox')
 
     $total = [long]$size
     # ZipArchive needs random access (the central directory is at the end),
@@ -249,7 +249,7 @@ function Resolve-ModelArgs($modelAlias) {
 
 function Invoke-LlamaExe($exeName, $argsFileName, $modelAlias, $extraArgs) {
     $meta = Read-JsonFile $MetaFile
-    if ($null -eq $meta) { throw "llama.cpp is not installed. Run llama-manager.ps1 to install." }
+    if ($null -eq $meta) { throw "llama.cpp is not installed. Run .\llama.ps1 -Update to install." }
 
     Set-CudartPath $meta
 
@@ -263,7 +263,7 @@ function Invoke-LlamaExe($exeName, $argsFileName, $modelAlias, $extraArgs) {
 
 function Start-AllServers {
     $meta = Read-JsonFile $MetaFile
-    if ($null -eq $meta) { throw "llama.cpp is not installed. Run llama-manager.ps1 to install." }
+    if ($null -eq $meta) { throw "llama.cpp is not installed. Run .\llama.ps1 -Update to install." }
 
     Set-CudartPath $meta
 
@@ -377,15 +377,15 @@ function Invoke-Update {
 
 function Show-Help {
     Write-Host @'
-llama-manager.ps1 - manage llama.cpp Windows releases
+LlamaBox (llama.ps1) - manage llama.cpp Windows releases
 
 USAGE:
-  .\llama-manager.ps1 -Update [-Variant <variant>]      Download/install or update llama.cpp to the latest release
-  .\llama-manager.ps1 -Server [-Model <alias>] [args]   Run llama-server
-  .\llama-manager.ps1 -Cli [-Model <alias>] [args]      Run llama-cli
-  .\llama-manager.ps1 -StartServers                     Start every servers\*.args.txt instance
-  .\llama-manager.ps1 -ListModels                       List available model profiles
-  .\llama-manager.ps1 -Help                             Show this help
+  .\llama.ps1 -Update [-Variant <variant>]      Download/install or update llama.cpp to the latest release
+  .\llama.ps1 -Server [-Model <alias>] [args]   Run llama-server
+  .\llama.ps1 -Cli [-Model <alias>] [args]      Run llama-cli
+  .\llama.ps1 -StartServers                     Start every servers\*.args.txt instance
+  .\llama.ps1 -ListModels                       List available model profiles
+  .\llama.ps1 -Help                             Show this help
 
 VARIANTS:
   cuda12, cuda13, cuda (-> cuda13), hip, rocm (-> hip), vulkan, cpu

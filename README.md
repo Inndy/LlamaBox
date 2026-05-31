@@ -1,38 +1,67 @@
-# llama-dl
+# LlamaBox
 
-A self-contained PowerShell manager for [llama.cpp](https://github.com/ggml-org/llama.cpp) on Windows. Downloads and updates releases, creates shim scripts, and manages multiple llama-server instances as a startup service.
+A self-contained PowerShell manager for [llama.cpp](https://github.com/ggml-org/llama.cpp) on Windows. It downloads and updates official releases, ships ready-to-use shim scripts, manages per-model argument profiles, and runs multiple `llama-server` instances as a startup service.
 
-**Requirements:** Windows 10/11 with PowerShell 5.1 (built-in). No Python, no admin rights, no third-party tools.
+**Requirements:** Windows 10/11 with Windows PowerShell 5.1 (built-in). No Python, no admin rights, no third-party tools — only what ships with Windows.
+
+## Install
+
+One line in PowerShell installs LlamaBox to `%LOCALAPPDATA%\LlamaBox` and adds it to your user `PATH`:
+
+```powershell
+irm https://raw.githubusercontent.com/Inndy/LlamaBox/main/install.ps1 | iex
+```
+
+To choose the directory or skip the `PATH` change, pass arguments via a script block:
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/Inndy/LlamaBox/main/install.ps1))) -Dir D:\LlamaBox -NoPath
+```
+
+Re-running the installer upgrades the scripts in place and leaves your `*.args.txt` configs and `meta.json` untouched.
+
+Prefer to do it by hand? Just download or `git clone` the repo into a folder — every script self-locates, so the folder can live anywhere.
+
+Once the install directory is on `PATH` (open a **new** terminal afterwards), the `llama` command works from anywhere thanks to the bundled `llama.cmd` launcher:
+
+```powershell
+llama -Update                 # download/update the llama.cpp binaries
+llama -Server -Model qwen     # run a server with the qwen profile
+llama -ListModels             # list your model profiles
+```
+
+> The examples below use `.\llama.ps1`, which works from inside the install folder. If you put the
+> folder on `PATH` (the installer does this by default), replace `.\llama.ps1` with `llama` and run
+> it from anywhere.
 
 ## Quick start
 
 ```powershell
-.\llama-manager.ps1 -Update
+.\llama.ps1 -Update
 ```
 
-Running `.\llama-manager.ps1` with no arguments prints the available sub-commands.
+Running `.\llama.ps1` with no arguments prints the available sub-commands.
 
-On first run `-Update` will:
+On first run, `-Update` will:
 - Download the latest llama.cpp release (CUDA 13 by default) straight into memory (fileless, no temp zip)
 - Extract it in-memory with .NET `ZipArchive`
-- Download the CUDA runtime DLLs into a separate directory
-- Create `llama-server.ps1` and `llama-cli.ps1` shims
-- Create `llama-server.args.txt` and `llama-cli.args.txt` for persistent arguments
-- Create a `servers/` directory with an example server config
-- Generate `start-servers.ps1` for running all servers at boot
+- Download the CUDA runtime DLLs into a separate directory (CUDA variants only)
+- Create default argument files (`llama-server.args.txt`, `llama-cli.args.txt`) and example profiles under `servers/` and `models/` if they don't exist yet
+
+The shims (`llama-server.ps1`, `llama-cli.ps1`) and `start-servers.ps1` ship with LlamaBox — they read `meta.json` at runtime, so they never need regenerating after an update.
 
 ## Variants
 
 ```powershell
-.\llama-manager.ps1 -Variant cuda13   # NVIDIA CUDA 13.x (default)
-.\llama-manager.ps1 -Variant cuda12   # NVIDIA CUDA 12.x
-.\llama-manager.ps1 -Variant hip      # AMD ROCm/HIP (Radeon)
-.\llama-manager.ps1 -Variant vulkan   # Vulkan (cross-vendor)
-.\llama-manager.ps1 -Variant cpu      # CPU-only (no GPU runtime)
+.\llama.ps1 -Update -Variant cuda13   # NVIDIA CUDA 13.x (default)
+.\llama.ps1 -Update -Variant cuda12   # NVIDIA CUDA 12.x
+.\llama.ps1 -Update -Variant hip      # AMD ROCm/HIP (Radeon)
+.\llama.ps1 -Update -Variant vulkan   # Vulkan (cross-vendor)
+.\llama.ps1 -Update -Variant cpu      # CPU-only (no GPU runtime)
 
 # Aliases
-.\llama-manager.ps1 -Variant cuda     # same as cuda13
-.\llama-manager.ps1 -Variant rocm     # same as hip
+.\llama.ps1 -Update -Variant cuda     # same as cuda13
+.\llama.ps1 -Update -Variant rocm     # same as hip
 ```
 
 The chosen variant is saved to `meta.json` and reused on subsequent runs.
@@ -42,7 +71,7 @@ The chosen variant is saved to `meta.json` and reused on subsequent runs.
 Re-run `-Update` at any time. It checks the latest GitHub release and downloads only if a newer version is available or the variant changed.
 
 ```powershell
-.\llama-manager.ps1 -Update
+.\llama.ps1 -Update
 ```
 
 Old extracted directories are kept on disk. Only `meta.json` is updated to point at the new version.
@@ -105,14 +134,14 @@ List defined profiles (a table of alias, model source, and context size; the `ex
 template is omitted):
 
 ```powershell
-.\llama-manager.ps1 -ListModels
+.\llama.ps1 -ListModels
 ```
 
 The manager accepts a profile too, via `-Model`:
 
 ```powershell
-.\llama-manager.ps1 -Server -Model qwen
-.\llama-manager.ps1 -Cli -Model qwen -p "hello"
+.\llama.ps1 -Server -Model qwen
+.\llama.ps1 -Cli -Model qwen -p "hello"
 ```
 
 ## Running multiple servers
@@ -147,18 +176,24 @@ Or open it directly with Win+R → `shell:startup`.
 ## Directory layout
 
 ```
-llama-dl\
-  llama-manager.ps1
-  meta.json
-  llama-server.ps1
-  llama-cli.ps1
+LlamaBox\
+  llama.ps1                            ← main manager (the `llama` command)
+  llama.cmd                            ← launcher so `llama` works on PATH
+  install.ps1                          ← installer / script updater
+  meta.json                            ← installed-release state (created by -Update)
+  llama-server.ps1                     ← shim
+  llama-cli.ps1                        ← shim
+  start-servers.ps1                    ← starts every servers\*.args.txt instance
   llama-server.args.txt
   llama-cli.args.txt
-  start-servers.ps1
   servers\
     example.args.txt
   models\
     example.args.txt                   ← per-model arg profiles (run by alias)
-  llama-b8676-bin-win-cuda-13.1-x64\   ← binaries
+  llama-b8676-bin-win-cuda-13.1-x64\   ← binaries (downloaded by -Update)
   cudart-llama-bin-win-cuda-13.1-x64\  ← CUDA runtime DLLs (cuda variants only)
 ```
+
+## License
+
+[MIT](LICENSE)

@@ -1,16 +1,18 @@
-# llama-dl
+# LlamaBox
 
-PowerShell-based manager for llama.cpp Windows releases. No Python or third-party tools required — only what ships with Windows 11.
+PowerShell-based manager for llama.cpp Windows releases. No Python or third-party tools required — only what ships with Windows 11. Published at `github.com/Inndy/LlamaBox`.
 
 ## Key files
 
 | File | Role |
 |------|------|
-| `llama-manager.ps1` | Main manager script |
-| `meta.json` | Installed release state (release tag, dir, cudart_dir, variant) |
-| `llama-server.ps1` | Generated shim — reads meta.json at runtime |
-| `llama-cli.ps1` | Generated shim — reads meta.json at runtime |
-| `start-servers.ps1` | Generated startup script — discovers servers/*.args.txt |
+| `llama.ps1` | Main manager script (the `llama` command). Formerly `llama-manager.ps1`. |
+| `llama.cmd` | Launcher so `llama` works once the install dir is on PATH — runs `llama.ps1` via `%~dp0` |
+| `install.ps1` | Bootstrap installer/updater — fileless download+extract of the repo, optional PATH add |
+| `meta.json` | Installed release state (release tag, dir, cudart_dir, variant). Gitignored. |
+| `llama-server.ps1` | Shim — reads meta.json at runtime (committed, not generated) |
+| `llama-cli.ps1` | Shim — reads meta.json at runtime (committed, not generated) |
+| `start-servers.ps1` | Startup script (committed) — discovers servers/*.args.txt |
 | `llama-server.args.txt` | Default args for single-server interactive use |
 | `llama-cli.args.txt` | Default args for llama-cli interactive use |
 | `servers/*.args.txt` | One file per named server instance (started by start-servers.ps1) |
@@ -39,11 +41,11 @@ Shims self-update via `meta.json` — they don't need to be regenerated when the
 3. If the first arg is not a flag (no leading `-`), treat it as a model profile alias and load `models\<alias>.args.txt` (error if unknown)
 4. Build the final command as: base `.args.txt` → profile args → remaining CLI args (comments and blank lines stripped from files)
 
-The args-file parsing, model-alias resolution, and `cudart_dir` PATH logic are duplicated between the shims and `llama-manager.ps1` (`Get-FileArgs`, `Resolve-ModelArgs`, `Set-CudartPath`) because the shims are standalone entry points — keep them in sync when changing either. `Get-FileArgs` also appears in `start-servers.ps1`, and `Format-ProcessArgs` is shared between `start-servers.ps1` and `llama-manager.ps1`.
+The args-file parsing, model-alias resolution, and `cudart_dir` PATH logic are duplicated between the shims and `llama.ps1` (`Get-FileArgs`, `Resolve-ModelArgs`, `Set-CudartPath`) because the shims are standalone entry points — keep them in sync when changing either. `Get-FileArgs` also appears in `start-servers.ps1`, and `Format-ProcessArgs` is shared between `start-servers.ps1` and `llama.ps1`.
 
 ## Model profiles
 
-`models/<alias>.args.txt` holds preferred args per model. Layering is **base args file → profile → extra CLI args**; llama.cpp uses the last value for a repeated flag, so the profile and CLI override base defaults. Invoke via the shim positionally (`.\llama-server.ps1 qwen`), the manager (`-Server -Model qwen` / `-Cli -Model qwen`), or list with `-ListModels`. Same file format as any args file.
+`models/<alias>.args.txt` holds preferred args per model. Layering is **base args file → profile → extra CLI args**; llama.cpp uses the last value for a repeated flag, so the profile and CLI override base defaults. Invoke via the shim positionally (`.\llama-server.ps1 qwen`), the manager (`.\llama.ps1 -Server -Model qwen` / `-Cli -Model qwen`), or list with `-ListModels`. Same file format as any args file.
 
 ## Args file format
 
